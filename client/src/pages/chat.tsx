@@ -29,6 +29,9 @@ export default function ChatPage() {
   useEffect(() => {
     if (sessionCreated.current || !userId) return;
     const createSession = async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
       try {
         const response = await fetch('/api/sessions', {
           method: 'POST',
@@ -38,19 +41,25 @@ export default function ChatPage() {
             title: 'New SpiderBuddy Chat',
             personality: 'spiderman'
           }),
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
         
         if (response.ok) {
           const session = await response.json();
           setSessionId(session.id);
           setSessionError(null);
         } else {
-          const errorData = await response.json();
+          const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.message || 'Failed to create session');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to create session:', error);
-        setSessionError(error instanceof Error ? error.message : 'An unknown error occurred.');
+        if (error.name === 'AbortError') {
+           setSessionError("Connection verification timed out. Your database might be sleeping (Neon/Render) or firewall blocked.");
+        } else {
+           setSessionError(error instanceof Error ? error.message : 'An unknown error occurred.');
+        }
       } finally {
         setIsCreatingSession(false);
       }
