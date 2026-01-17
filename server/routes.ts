@@ -107,6 +107,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
+      // Lazy-create session if it doesn't exist (supports client-side ID generation)
+      if (sessionId && userId) {
+        const existingSession = await storage.getChatSession(sessionId);
+        if (!existingSession) {
+          await storage.createChatSession({
+            id: sessionId,
+            userId: userId,
+            title: `Chat with ${personality}`,
+            personality: personality
+          });
+        }
+      }
+
       // Save user message if we have session info
       if (sessionId) {
         await storage.createMessage({
