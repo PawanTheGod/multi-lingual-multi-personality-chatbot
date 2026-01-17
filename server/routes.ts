@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
 import { db } from "./db.js";
-import { users, personalityEnum } from "@shared/schema";
+import { users, personalityEnum } from "../shared/schema.js";
 import { generateChatResponse, analyzeImage } from "./ai-service.js";
 import { AVAILABLE_MODELS } from "./models.js";
 import { z } from "zod";

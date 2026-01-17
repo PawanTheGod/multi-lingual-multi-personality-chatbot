@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import * as schema from "@shared/schema";
+import * as schema from "../shared/schema.js";
 
 if (!process.env.DATABASE_URL) {
   console.warn("DATABASE_URL must be set. Did you forget to provision a database?");

@@ -1,6 +1,6 @@
-import { Message, Personality } from "@shared/schema";
+import { Message, Personality } from "../shared/schema.js";
 import { AVAILABLE_MODELS, getModelsByCapability, isModelCompatible } from "./models.js";
-import type { ModelConfig } from "@shared/schema";
+import type { ModelConfig } from "../shared/schema.js";
 
 // Get the current active model from environment or default
 let currentModel = process.env.DEFAULT_MODEL || 'deepseek-r1t-chimera';

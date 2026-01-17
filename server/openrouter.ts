@@ -1,4 +1,4 @@
-import { Message, Personality } from "@shared/schema";
+import { Message, Personality } from "../shared/schema.js";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
