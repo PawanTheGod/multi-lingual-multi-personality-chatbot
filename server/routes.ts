@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
-import { db } from "./db.js";
+
 import { users, personalityEnum } from "../shared/schema.js";
 import { generateChatResponse, analyzeImage } from "./ai-service.js";
 import { AVAILABLE_MODELS } from "./models.js";
@@ -66,7 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const existing = await storage.getUser(userId);
         if (!existing) {
           try {
-            await db.insert(users).values({ id: userId, username: userId });
+            await storage.createUser({ id: userId, username: userId }); // Should use username specific creator if needed, or stick to this if compatible
           } catch (e) {
             // Ignore unique conflicts
           }
