@@ -6,30 +6,39 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+
   getChatSession(id: string): Promise<ChatSession | undefined>;
   getUserChatSessions(userId: string): Promise<ChatSession[]>;
   createChatSession(session: InsertChatSession): Promise<ChatSession>;
   updateChatSession(id: string, updates: Partial<ChatSession>): Promise<ChatSession>;
   deleteChatSession(id: string): Promise<void>;
-  
+
   getSessionMessages(sessionId: string): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
   getRecentMessages(sessionId: string, limit: number): Promise<Message[]>;
 }
 
 export class DatabaseStorage implements IStorage {
+  private checkDb() {
+    if (!db) {
+      throw new Error("Database not connected. Please check DATABASE_URL in environment variables.");
+    }
+  }
+
   async getUser(id: string): Promise<User | undefined> {
+    this.checkDb();
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
+    this.checkDb();
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    this.checkDb();
     const [user] = await db
       .insert(users)
       .values(insertUser)
@@ -38,11 +47,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getChatSession(id: string): Promise<ChatSession | undefined> {
+    this.checkDb();
     const [session] = await db.select().from(chatSessions).where(eq(chatSessions.id, id));
     return session || undefined;
   }
 
   async getUserChatSessions(userId: string): Promise<ChatSession[]> {
+    this.checkDb();
     return await db
       .select()
       .from(chatSessions)
@@ -51,6 +62,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createChatSession(session: InsertChatSession): Promise<ChatSession> {
+    this.checkDb();
     const [newSession] = await db
       .insert(chatSessions)
       .values(session)
@@ -59,6 +71,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateChatSession(id: string, updates: Partial<ChatSession>): Promise<ChatSession> {
+    this.checkDb();
     const [updatedSession] = await db
       .update(chatSessions)
       .set({ ...updates, updatedAt: new Date() })
@@ -68,6 +81,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteChatSession(id: string): Promise<void> {
+    this.checkDb();
     // First delete all messages in the session
     await db.delete(messages).where(eq(messages.sessionId, id));
     // Then delete the session itself
@@ -75,6 +89,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSessionMessages(sessionId: string): Promise<Message[]> {
+    this.checkDb();
     return await db
       .select()
       .from(messages)
@@ -83,6 +98,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMessage(message: InsertMessage): Promise<Message> {
+    this.checkDb();
     const [newMessage] = await db
       .insert(messages)
       .values(message)
@@ -91,6 +107,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRecentMessages(sessionId: string, limit: number): Promise<Message[]> {
+    this.checkDb();
     return await db
       .select()
       .from(messages)
