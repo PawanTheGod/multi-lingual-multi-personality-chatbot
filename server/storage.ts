@@ -117,4 +117,118 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+import { nanoid } from "nanoid";
+
+export class MemStorage implements IStorage {
+  private users: Map<string, User>;
+  private sessions: Map<string, ChatSession>;
+  private messages: Map<string, Message>;
+
+  constructor() {
+    this.users = new Map();
+    this.sessions = new Map();
+    this.messages = new Map();
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.username === username,
+    );
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = insertUser.username; // Use username as ID for simplicity in memory mode
+    const user: User = { ...insertUser, id, createdAt: new Date(), preferences: {} };
+    this.users.set(id, user);
+    return user;
+  }
+
+  async getChatSession(id: string): Promise<ChatSession | undefined> {
+    return this.sessions.get(id);
+  }
+
+  async getUserChatSessions(userId: string): Promise<ChatSession[]> {
+    return Array.from(this.sessions.values())
+      .filter((session) => session.userId === userId)
+      .sort((a, b) => {
+        const timeA = a.updatedAt?.getTime() || 0;
+        const timeB = b.updatedAt?.getTime() || 0;
+        return timeB - timeA;
+      });
+  }
+
+  async createChatSession(session: InsertChatSession): Promise<ChatSession> {
+    const id = nanoid();
+    const newSession: ChatSession = {
+      ...session,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      title: session.title || "New Session",
+      personality: session.personality || "spiderman"
+    };
+    this.sessions.set(id, newSession);
+    return newSession;
+  }
+
+  async updateChatSession(id: string, updates: Partial<ChatSession>): Promise<ChatSession> {
+    const session = this.sessions.get(id);
+    if (!session) throw new Error("Session not found");
+    const updatedSession = { ...session, ...updates, updatedAt: new Date() };
+    this.sessions.set(id, updatedSession);
+    return updatedSession;
+  }
+
+  async deleteChatSession(id: string): Promise<void> {
+    this.sessions.delete(id);
+    // Cleanup messages for this session
+    for (const [msgId, msg] of this.messages.entries()) {
+      if (msg.sessionId === id) {
+        this.messages.delete(msgId);
+      }
+    }
+  }
+
+  async getSessionMessages(sessionId: string): Promise<Message[]> {
+    return Array.from(this.messages.values())
+      .filter((msg) => msg.sessionId === sessionId)
+      .sort((a, b) => {
+        const timeA = a.createdAt?.getTime() || 0;
+        const timeB = b.createdAt?.getTime() || 0;
+        return timeA - timeB;
+      });
+  }
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const id = nanoid();
+    const newMessage: Message = {
+      ...message,
+      id,
+      createdAt: new Date(),
+      messageType: message.messageType || "text",
+      metadata: message.metadata || {},
+      personality: message.personality || "spiderman"
+    };
+    this.messages.set(id, newMessage);
+    return newMessage;
+  }
+
+  async getRecentMessages(sessionId: string, limit: number): Promise<Message[]> {
+    return Array.from(this.messages.values())
+      .filter((msg) => msg.sessionId === sessionId)
+      .sort((a, b) => {
+        const timeA = a.createdAt?.getTime() || 0;
+        const timeB = b.createdAt?.getTime() || 0;
+        return timeB - timeA;
+      })
+      .slice(0, limit);
+  }
+}
+
+export const storage = process.env.DATABASE_URL
+  ? new DatabaseStorage()
+  : new MemStorage();
