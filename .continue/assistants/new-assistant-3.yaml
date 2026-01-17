@@ -1,0 +1,21 @@
+name: DeepSeek Local
+version: 1.0.0
+schema: v1
+
+models:
+  - name: DeepSeek Coder V2 16B
+    provider: ollama
+    model: deepseek-coder-v2:16b
+    roles:
+      - chat
+      - edit
+      - apply
+
+context:
+  - provider: code
+  - provider: docs
+  - provider: diff
+  - provider: terminal
+  - provider: problems
+  - provider: folder
+  - provider: codebase

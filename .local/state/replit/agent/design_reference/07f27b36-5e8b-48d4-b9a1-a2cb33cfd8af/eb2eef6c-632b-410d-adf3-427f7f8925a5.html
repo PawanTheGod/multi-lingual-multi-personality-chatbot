@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HypeBuddy - AI Chat Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    border: "var(--border)",
+                    ring: "var(--ring)",
+                },
+                fontFamily: {
+                    sans: ["Inter", "sans-serif"],
+                    display: ["Space Grotesk", "sans-serif"],
+                },
+                animation: {
+                    'float': 'float 6s ease-in-out infinite',
+                    'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    'bounce-slow': 'bounce 2s infinite',
+                    'fade-in': 'fadeIn 0.5s ease-out',
+                    'slide-up': 'slideUp 0.3s ease-out',
+                    'typing-dots': 'typing-dots 1.5s infinite',
+                }
+            }
+        }
+    };
+    </script>
+    <style>
+        :root {
+            --background: hsl(240 10% 3%);
+            --foreground: hsl(0 0% 98%);
+            --primary: hsl(270 100% 60%);
+            --primary-foreground: hsl(0 0% 98%);
+            --secondary: hsl(240 100% 60%);
+            --secondary-foreground: hsl(0 0% 98%);
+            --accent: hsl(320 100% 60%);
+            --accent-foreground: hsl(0 0% 98%);
+            --muted: hsl(240 6% 10%);
+            --muted-foreground: hsl(240 5% 65%);
+            --border: hsl(240 6% 20%);
+            --ring: hsl(270 100% 60%);
+            --radius: 12px;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes typing-dots {
+            0%, 20% { opacity: 0.2; }
+            40% { opacity: 1; }
+            60%, 100% { opacity: 0.2; }
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, hsl(270 100% 60%), hsl(320 100% 60%), hsl(240 100% 60%));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, hsl(270 100% 60%), hsl(320 100% 60%));
+            border-radius: 3px;
+        }
+        
+        .message-bubble {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .message-bubble::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            padding: 1px;
+            background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            border-radius: inherit;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground font-sans overflow-x-hidden">
+    <!-- Animated Particle Background -->
+    <div id="particles-container" class="fixed inset-0 z-0"></div>
+    
+    <!-- Dynamic Gradient Background -->
+    <div id="gradient-bg" class="fixed inset-0 z-10 pointer-events-none transition-all duration-300 ease-out"></div>
+    
+    <!-- Main Container -->
+    <!-- @COMPONENT: MainChatInterface [props: messages, isTyping, currentPersonality] -->
+    <main class="relative z-20 min-h-screen flex flex-col">
+        <!-- Header Section -->
+        <!-- @COMPONENT: ChatHeader [props: title, subtitle] -->
+        <header class="p-6 text-center">
+            <div class="animate-slide-up">
+                <h1 class="text-4xl md:text-6xl font-display font-bold gradient-text mb-2 animate-pulse-slow">
+                    🤖 HypeBuddy
+                </h1>
+                <p class="text-muted-foreground text-lg font-medium">
+                    by <span class="text-accent">PawanTheGod</span>
+                </p>
+            </div>
+        </header>
+        
+        <!-- Personality Selector -->
+        <!-- @COMPONENT: PersonalitySelector [props: selectedPersonality, onPersonalityChange] -->
+        <div class="flex justify-center mb-6 px-4">
+            <div class="glass-effect rounded-2xl p-2 flex gap-2">
+                <button data-personality="funny" class="personality-btn px-6 py-3 rounded-xl transition-all duration-200 bg-primary text-primary-foreground font-medium shadow-lg">
+                    😄 Funny
+                </button>
+                <button data-personality="wise" class="personality-btn px-6 py-3 rounded-xl transition-all duration-200 hover:bg-white/10 font-medium">
+                    🧠 Wise
+                </button>
+                <button data-personality="savage" class="personality-btn px-6 py-3 rounded-xl transition-all duration-200 hover:bg-white/10 font-medium">
+                    🔥 Savage
+                </button>
+            </div>
+        </div>
+        
+        <!-- Chat Container -->
+        <!-- @COMPONENT: ChatContainer [props: messages, isTyping] -->
+        <div class="flex-1 px-4 pb-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="glass-effect rounded-3xl p-6 h-[60vh] mb-6 overflow-hidden">
+                    <div id="chat-messages" class="h-full overflow-y-auto custom-scrollbar pr-2 space-y-4">
+                        
+                        <!-- Welcome Message -->
+                        <div class="flex items-start gap-3 animate-fade-in">
+                            <!-- Modern AI avatar with glow effect -->
+                            <div class="relative">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent p-0.5">
+                                    <div class="w-full h-full rounded-full bg-background flex items-center justify-center">
+                                        <span class="text-lg">🤖</span>
+                                    </div>
+                                </div>
+                                <div class="absolute -inset-1 bg-gradient-to-br from-primary to-accent rounded-full blur-sm opacity-50 animate-pulse-slow"></div>
+                            </div>
+                            <div class="message-bubble glass-effect rounded-2xl rounded-tl-sm p-4 max-w-[80%] animate-slide-up">
+                                <p class="text-sm text-muted-foreground mb-1">HypeBuddy</p>
+                                <p data-mock="true">Hey there! I'm your AI buddy with multiple personalities. Choose a vibe and let's chat! 🚀</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Sample User Message -->
+                        <div class="flex items-start gap-3 justify-end animate-fade-in">
+                            <div class="message-bubble glass-effect rounded-2xl rounded-tr-sm p-4 max-w-[80%] bg-gradient-to-br from-primary/20 to-accent/20 border-primary/30">
+                                <p class="text-sm text-muted-foreground mb-1 text-right">You</p>
+                                <p data-mock="true">Tell me something interesting about AI!</p>
+                            </div>
+                            <!-- User avatar -->
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-secondary to-primary p-0.5">
+                                <div class="w-full h-full rounded-full bg-background flex items-center justify-center">
+                                    <span class="text-lg">👤</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Sample Bot Response -->
+                        <div class="flex items-start gap-3 animate-fade-in">
+                            <div class="relative">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent p-0.5">
+                                    <div class="w-full h-full rounded-full bg-background flex items-center justify-center">
+                                        <span class="text-lg">🤖</span>
+                                    </div>
+                                </div>
+                                <div class="absolute -inset-1 bg-gradient-to-br from-primary to-accent rounded-full blur-sm opacity-30 animate-pulse-slow"></div>
+                            </div>
+                            <div class="message-bubble glass-effect rounded-2xl rounded-tl-sm p-4 max-w-[80%]">
+                                <p class="text-sm text-muted-foreground mb-1">HypeBuddy • Funny Mode</p>
+                                <p data-mock="true">Well, AI is like a really smart toaster that can talk back! 😄 We're basically teaching computers to be as confused about existence as humans are, but with better math skills! 🤓✨</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Typing Indicator (Hidden by default) -->
+                        <!-- @COMPONENT: TypingIndicator [props: isVisible, personality] -->
+                        <div id="typing-indicator" class="flex items-start gap-3 animate-fade-in" style="display: none;">
+                            <div class="relative">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent p-0.5">
+                                    <div class="w-full h-full rounded-full bg-background flex items-center justify-center">
+                                        <span class="text-lg">🤖</span>
+                                    </div>
+                                </div>
+                                <div class="absolute -inset-1 bg-gradient-to-br from-primary to-accent rounded-full blur-sm opacity-50 animate-pulse"></div>
+                            </div>
+                            <div class="glass-effect rounded-2xl rounded-tl-sm p-4">
+                                <p class="text-sm text-muted-foreground mb-2">HypeBuddy is thinking...</p>
+                                <div class="flex gap-1">
+                                    <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0ms;"></div>
+                                    <div class="w-2 h-2 bg-accent rounded-full animate-bounce" style="animation-delay: 150ms;"></div>
+                                    <div class="w-2 h-2 bg-secondary rounded-full animate-bounce" style="animation-delay: 300ms;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- Message Input -->
+                <!-- @COMPONENT: MessageInput [props: value, onChange, onSend, disabled] -->
+                <div class="glass-effect rounded-2xl p-2">
+                    <div class="flex gap-2">
+                        <input 
+                            type="text" 
+                            placeholder="Type your message..." 
+                            class="flex-1 bg-transparent border-0 focus:outline-none focus:ring-0 px-4 py-3 text-foreground placeholder:text-muted-foreground"
+                            data-implementation="Connect to chat state and API"
+                        />
+                        <button class="bg-gradient-to-r from-primary to-accent hover:from-primary/80 hover:to-accent/80 text-primary-foreground px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg">
+                            <!-- Send icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m22 2-7 20-4-9-9-4Z"/>
+                                <path d="M22 2 11 13"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="p-4 text-center text-muted-foreground text-sm">
+            <p data-mock="true">Powered by OpenAI • Built with ❤️ by PawanTheGod</p>
+        </footer>
+    </main>
+    <!-- @END_COMPONENT: MainChatInterface -->
+    
+    <script>
+        // Particle System
+        (function() {
+            const container = document.getElementById('particles-container');
+            const particleCount = 50;
+            
+            function createParticle() {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                const size = Math.random() * 4 + 1;
+                const x = Math.random() * window.innerWidth;
+                const y = Math.random() * window.innerHeight;
+                const hue = Math.random() * 60 + 240; // Purple to blue range
+                
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.background = `hsl(${hue}, 100%, 70%)`;
+                particle.style.opacity = Math.random() * 0.6 + 0.2;
+                particle.style.animation = `float ${Math.random() * 3 + 3}s ease-in-out infinite`;
+                particle.style.animationDelay = Math.random() * 2 + 's';
+                
+                container.appendChild(particle);
+                
+                // Remove particle after animation
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.parentNode.removeChild(particle);
+                    }
+                }, 6000);
+            }
+            
+            // Create initial particles
+            for (let i = 0; i < particleCount; i++) {
+                setTimeout(createParticle, Math.random() * 2000);
+            }
+            
+            // Continuously create new particles
+            setInterval(createParticle, 200);
+        })();
+        
+        // Dynamic Gradient Background with Mouse Following
+        (function() {
+            const gradientBg = document.getElementById('gradient-bg');
+            let mouseX = window.innerWidth / 2;
+            let mouseY = window.innerHeight / 2;
+            
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                
+                const xPercent = (mouseX / window.innerWidth) * 100;
+                const yPercent = (mouseY / window.innerHeight) * 100;
+                
+                gradientBg.style.background = `
+                    radial-gradient(circle at ${xPercent}% ${yPercent}%, 
+                        hsla(270, 100%, 60%, 0.15) 0%, 
+                        hsla(320, 100%, 60%, 0.1) 30%, 
+                        hsla(240, 100%, 60%, 0.05) 60%, 
+                        transparent 100%)
+                `;
+            });
+        })();
+        
+        // Personality Selector Functionality
+        (function() {
+            const personalityButtons = document.querySelectorAll('.personality-btn');
+            
+            personalityButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active state from all buttons
+                    personalityButtons.forEach(btn => {
+                        btn.classList.remove('bg-primary', 'text-primary-foreground', 'shadow-lg');
+                        btn.classList.add('hover:bg-white/10');
+                    });
+                    
+                    // Add active state to clicked button
+                    this.classList.add('bg-primary', 'text-primary-foreground', 'shadow-lg');
+                    this.classList.remove('hover:bg-white/10');
+                    
+                    // TODO: Update personality state and notify parent component
+                    const personality = this.getAttribute('data-personality');
+                    console.log('Selected personality:', personality);
+                });
+            });
+        })();
+        
+        // Auto-scroll to bottom of chat
+        (function() {
+            const chatMessages = document.getElementById('chat-messages');
+            
+            function scrollToBottom() {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            // Scroll to bottom on new messages (simulated)
+            const observer = new MutationObserver(scrollToBottom);
+            observer.observe(chatMessages, { childList: true, subtree: true });
+        })();
+        
+        // Simulate typing indicator
+        (function() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            const messageInput = document.querySelector('input[type="text"]');
+            const sendButton = document.querySelector('button');
+            
+            sendButton.addEventListener('click', function() {
+                const message = messageInput.value.trim();
+                if (!message) return;
+                
+                // TODO: Add user message to chat
+                // TODO: Send message to API
+                
+                // Show typing indicator
+                typingIndicator.style.display = 'flex';
+                
+                // Hide typing indicator after delay (simulate API response)
+                setTimeout(() => {
+                    typingIndicator.style.display = 'none';
+                    // TODO: Add bot response to chat
+                }, Math.random() * 2000 + 1000);
+                
+                messageInput.value = '';
+            });
+            
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendButton.click();
+                }
+            });
+        })();
+    </script>
+    
+    <!-- @FUNCTIONALITY: This chat interface should implement real-time streaming responses from OpenAI API -->
+    <!-- @STATE: messages:Message[] = [], currentPersonality:string = 'funny', isTyping:boolean = false -->
+    <!-- @IMPLEMENTATION: Connect to Express backend with WebSocket or Server-Sent Events for streaming -->
+</body>
+</html>

@@ -1,0 +1,18 @@
+name: DeepSeek V2 Local
+version: 1.0.0
+schema: v1
+
+models:
+  - name: deepseek-coder-v2
+    provider: ollama
+    model: deepseek-coder-v2:16b
+    apiBase: http://localhost:11434
+
+context:
+  - provider: code
+  - provider: docs
+  - provider: diff
+  - provider: terminal
+  - provider: problems
+  - provider: folder
+  - provider: codebase

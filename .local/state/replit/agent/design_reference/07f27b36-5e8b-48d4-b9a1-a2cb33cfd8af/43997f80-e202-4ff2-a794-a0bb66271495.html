@@ -1,0 +1,597 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HypeBuddy - AI Chat Companion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          borderRadius: {
+            lg: "var(--radius)",
+            md: "calc(var(--radius) - 2px)",
+            sm: "calc(var(--radius) - 4px)",
+          },
+          colors: {
+            background: "var(--background)",
+            foreground: "var(--foreground)",
+            primary: {
+              DEFAULT: "var(--primary)",
+              foreground: "var(--primary-foreground)",
+            },
+            secondary: {
+              DEFAULT: "var(--secondary)",
+              foreground: "var(--secondary-foreground)",
+            },
+            muted: {
+              DEFAULT: "var(--muted)",
+              foreground: "var(--muted-foreground)",
+            },
+            accent: {
+              DEFAULT: "var(--accent)",
+              foreground: "var(--accent-foreground)",
+            },
+            border: "var(--border)",
+            ring: "var(--ring)",
+          },
+          fontFamily: {
+            sans: ["Inter", "system-ui", "sans-serif"],
+          },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-slow': 'pulse 3s ease-in-out infinite',
+            'bounce-slow': 'bounce 2s ease-in-out infinite',
+            'gradient': 'gradient 8s ease infinite',
+            'particle': 'particle 20s linear infinite',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-20px)' },
+            },
+            gradient: {
+              '0%, 100%': { backgroundPosition: '0% 50%' },
+              '50%': { backgroundPosition: '100% 50%' },
+            },
+            particle: {
+              '0%': { transform: 'translateY(100vh) translateX(0px)', opacity: '0' },
+              '10%': { opacity: '1' },
+              '90%': { opacity: '1' },
+              '100%': { transform: 'translateY(-100vh) translateX(100px)', opacity: '0' },
+            },
+          }
+        },
+      }
+    };
+    </script>
+    <style>
+    :root {
+      --background: hsl(222 84% 5%);
+      --foreground: hsl(210 40% 98%);
+      --primary: hsl(262 83% 58%);
+      --primary-foreground: hsl(210 40% 98%);
+      --secondary: hsl(217 33% 17%);
+      --secondary-foreground: hsl(210 40% 98%);
+      --muted: hsl(217 33% 17%);
+      --muted-foreground: hsl(215 20% 65%);
+      --accent: hsl(262 83% 58%);
+      --accent-foreground: hsl(210 40% 98%);
+      --border: hsl(217 33% 17%);
+      --ring: hsl(262 83% 58%);
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    .glass-effect {
+      backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .personality-funny {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(245, 158, 11, 0.2));
+      border-color: rgba(251, 191, 36, 0.5);
+    }
+
+    .personality-wise {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(147, 197, 253, 0.2));
+      border-color: rgba(59, 130, 246, 0.5);
+    }
+
+    .personality-savage {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.2));
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: white;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: particle linear infinite;
+    }
+
+    .chat-container {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(167, 139, 250, 0.5) transparent;
+    }
+
+    .chat-container::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chat-container::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .chat-container::-webkit-scrollbar-thumb {
+      background: rgba(167, 139, 250, 0.5);
+      border-radius: 3px;
+    }
+
+    .floating-emoji {
+      position: absolute;
+      font-size: 24px;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    @media (max-width: 768px) {
+      .chat-bubble {
+        max-width: 85%;
+      }
+    }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen">
+    <!-- Particle Background -->
+    <div id="particles-container" class="fixed inset-0 z-0 overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-transparent to-blue-900/20"></div>
+    </div>
+
+    <!-- Floating Emojis -->
+    <div class="floating-emoji animate-float" style="top: 10%; left: 15%; animation-delay: 0s;">🚀</div>
+    <div class="floating-emoji animate-float" style="top: 20%; right: 20%; animation-delay: 2s;">✨</div>
+    <div class="floating-emoji animate-float" style="bottom: 30%; left: 10%; animation-delay: 4s;">🎯</div>
+    <div class="floating-emoji animate-float" style="bottom: 15%; right: 15%; animation-delay: 6s;">🔥</div>
+
+    <!-- @COMPONENT: MainChatInterface -->
+    <div class="relative z-10 flex flex-col h-screen">
+        <!-- Header -->
+        <!-- @COMPONENT: ChatHeader -->
+        <header class="glass-effect border-b border-white/10 p-4 backdrop-blur-xl">
+            <div class="flex items-center justify-between max-w-4xl mx-auto">
+                <div class="flex items-center gap-4">
+                    <!-- Futuristic robot head with glowing eyes -->
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center relative overflow-hidden">
+                        <i data-lucide="robot" class="w-6 h-6 text-white z-10"></i>
+                        <div class="absolute inset-0 bg-gradient-to-br from-purple-400/30 to-pink-400/30 animate-pulse"></div>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                            HypeBuddy
+                        </h1>
+                        <p class="text-sm text-muted-foreground" data-bind="status">by PawanTheGod • Online</p>
+                    </div>
+                </div>
+                
+                <!-- Theme & Personality Toggles -->
+                <div class="flex items-center gap-2">
+                    <!-- Voice Toggle -->
+                    <button class="glass-effect p-2 rounded-lg hover:bg-white/20 transition-all duration-200" data-event="click:toggleVoice">
+                        <i data-lucide="mic" class="w-5 h-5 text-white"></i>
+                    </button>
+                    
+                    <!-- Settings -->
+                    <button class="glass-effect p-2 rounded-lg hover:bg-white/20 transition-all duration-200" data-event="click:openSettings">
+                        <i data-lucide="settings" class="w-5 h-5 text-white"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+        <!-- @END_COMPONENT: ChatHeader -->
+
+        <!-- Personality Selector -->
+        <!-- @COMPONENT: PersonalitySelector -->
+        <div class="glass-effect border-b border-white/10 p-3 backdrop-blur-xl">
+            <div class="flex gap-2 max-w-4xl mx-auto justify-center">
+                <button class="personality-funny px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-105 border" data-personality="funny">
+                    😂 Funny
+                </button>
+                <button class="personality-wise px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-105 border opacity-60" data-personality="wise">
+                    🧘‍♂️ Wise
+                </button>
+                <button class="personality-savage px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-105 border opacity-60" data-personality="savage">
+                    🔥 Savage
+                </button>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: PersonalitySelector -->
+
+        <!-- Chat Messages Area -->
+        <!-- @COMPONENT: ChatContainer -->
+        <div class="flex-1 overflow-hidden">
+            <div class="chat-container h-full overflow-y-auto p-4 space-y-4 max-w-4xl mx-auto">
+                
+                <!-- Welcome Message -->
+                <div class="flex items-start gap-3 animate-fade-in" data-mock="true">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div class="chat-bubble glass-effect rounded-2xl rounded-tl-md p-4 max-w-[80%] border border-purple-500/30">
+                        <p class="text-white text-sm leading-relaxed">
+                            Hey there! 👋 I'm HypeBuddy, your AI companion with personality! I can be funny, wise, or savage - just pick your vibe! What's on your mind today?
+                        </p>
+                        <div class="flex gap-2 mt-3">
+                            <button class="text-xs px-3 py-1 bg-purple-500/20 rounded-full hover:bg-purple-500/30 transition-colors" data-event="click:quickResponse">
+                                Tell me a joke 😄
+                            </button>
+                            <button class="text-xs px-3 py-1 bg-purple-500/20 rounded-full hover:bg-purple-500/30 transition-colors" data-event="click:quickResponse">
+                                Give me advice 💡
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Message Example -->
+                <!-- @MAP: messages.filter(m => m.sender === 'user').map(message => ( -->
+                <div class="flex items-start gap-3 justify-end animate-fade-in" data-mock="true">
+                    <div class="chat-bubble glass-effect rounded-2xl rounded-tr-md p-4 max-w-[80%] bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30">
+                        <p class="text-white text-sm leading-relaxed">
+                            Hey HypeBuddy! Can you help me with some creative writing ideas for a sci-fi story?
+                        </p>
+                        <div class="text-xs text-blue-300 mt-2 text-right">Just now</div>
+                    </div>
+                    <!-- User avatar with creative gradient -->
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="user" class="w-5 h-5 text-white"></i>
+                    </div>
+                </div>
+                <!-- @END_MAP )) -->
+
+                <!-- Bot Typing Indicator -->
+                <!-- @STATE: isTyping:boolean = false -->
+                <div class="flex items-start gap-3 animate-fade-in" data-mock="true" data-implementation="Show when bot is typing">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="cpu" class="w-5 h-5 text-white animate-pulse"></i>
+                    </div>
+                    <div class="glass-effect rounded-2xl rounded-tl-md p-4 border border-purple-500/30">
+                        <div class="flex gap-1">
+                            <div class="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+                            <div class="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 0.1s;"></div>
+                            <div class="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 0.2s;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bot Response Example with Streaming Effect -->
+                <div class="flex items-start gap-3 animate-fade-in" data-mock="true">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="zap" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div class="chat-bubble glass-effect rounded-2xl rounded-tl-md p-4 max-w-[80%] border border-purple-500/30">
+                        <div class="text-white text-sm leading-relaxed space-y-2">
+                            <p>🚀 <strong>Awesome!</strong> Here are some mind-blowing sci-fi concepts for you:</p>
+                            
+                            <div class="bg-slate-800/50 rounded-lg p-3 border border-slate-600/30">
+                                <p class="font-medium text-purple-300">1. Quantum Memory Archives</p>
+                                <p class="text-xs text-slate-300 mt-1">Societies that store collective memories in quantum databases, accessible by neural implants.</p>
+                            </div>
+                            
+                            <div class="bg-slate-800/50 rounded-lg p-3 border border-slate-600/30">
+                                <p class="font-medium text-blue-300">2. Gravity Painters</p>
+                                <p class="text-xs text-slate-300 mt-1">Artists who manipulate gravity fields to create floating sculptures and impossible architecture.</p>
+                            </div>
+                            
+                            <p>Want me to dive deeper into any of these? I can get more specific! ✨</p>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="flex gap-2 mt-3 flex-wrap">
+                            <button class="text-xs px-3 py-1 bg-purple-500/20 rounded-full hover:bg-purple-500/30 transition-colors" data-event="click:expandIdea">
+                                Expand idea 1 🎯
+                            </button>
+                            <button class="text-xs px-3 py-1 bg-blue-500/20 rounded-full hover:bg-blue-500/30 transition-colors" data-event="click:moreIdeas">
+                                More ideas 💡
+                            </button>
+                            <button class="text-xs px-3 py-1 bg-green-500/20 rounded-full hover:bg-green-500/30 transition-colors" data-event="click:makeItFunny">
+                                Make it funny 😂
+                            </button>
+                        </div>
+                        
+                        <div class="text-xs text-purple-300 mt-3 flex items-center gap-2">
+                            <span>2 minutes ago</span>
+                            <button class="hover:text-white transition-colors" data-event="click:regenerateResponse">
+                                <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example with Syntax Highlighting -->
+                <div class="flex items-start gap-3 animate-fade-in" data-mock="true">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="code" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div class="chat-bubble glass-effect rounded-2xl rounded-tl-md p-4 max-w-[85%] border border-purple-500/30">
+                        <p class="text-white text-sm mb-3">Here's a quick code snippet for a gravity manipulator:</p>
+                        
+                        <!-- @FUNCTIONALITY: This code block should implement syntax highlighting using Prism.js or similar -->
+                        <div class="bg-slate-900/80 rounded-lg p-4 border border-slate-600/50 overflow-x-auto">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs text-slate-400">javascript</span>
+                                <button class="text-xs text-slate-400 hover:text-white transition-colors" data-event="click:copyCode">
+                                    <i data-lucide="copy" class="w-3 h-3"></i>
+                                </button>
+                            </div>
+                            <pre class="text-sm text-green-400 font-mono">
+<span class="text-blue-400">class</span> <span class="text-yellow-400">GravityManipulator</span> {
+  <span class="text-blue-400">constructor</span>(<span class="text-orange-400">strength</span>) {
+    <span class="text-purple-400">this</span>.<span class="text-cyan-400">field</span> = <span class="text-orange-400">strength</span>;
+  }
+  
+  <span class="text-blue-400">createFloatingObject</span>(<span class="text-orange-400">object</span>) {
+    <span class="text-orange-400">object</span>.<span class="text-cyan-400">gravity</span> = <span class="text-red-400">0</span>;
+    <span class="text-gray-400">// Magic happens here! ✨</span>
+  }
+}</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spacer for bottom input -->
+                <div class="h-24"></div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: ChatContainer -->
+
+        <!-- Input Area -->
+        <!-- @COMPONENT: ChatInput -->
+        <div class="sticky bottom-0 glass-effect border-t border-white/10 p-4 backdrop-blur-xl">
+            <div class="max-w-4xl mx-auto">
+                <!-- Quick Actions -->
+                <div class="flex gap-2 mb-3 overflow-x-auto pb-2">
+                    <button class="text-xs px-3 py-1 glass-effect rounded-full hover:bg-white/20 transition-all whitespace-nowrap" data-event="click:quickAction">
+                        🎨 Creative writing
+                    </button>
+                    <button class="text-xs px-3 py-1 glass-effect rounded-full hover:bg-white/20 transition-all whitespace-nowrap" data-event="click:quickAction">
+                        💻 Code help
+                    </button>
+                    <button class="text-xs px-3 py-1 glass-effect rounded-full hover:bg-white/20 transition-all whitespace-nowrap" data-event="click:quickAction">
+                        🧠 Problem solving
+                    </button>
+                    <button class="text-xs px-3 py-1 glass-effect rounded-full hover:bg-white/20 transition-all whitespace-nowrap" data-event="click:quickAction">
+                        😂 Tell a joke
+                    </button>
+                </div>
+
+                <!-- Input Container -->
+                <div class="flex items-end gap-3">
+                    <!-- Attachment Button -->
+                    <button class="glass-effect p-3 rounded-xl hover:bg-white/20 transition-all duration-200 flex-shrink-0" data-event="click:attachFile">
+                        <i data-lucide="paperclip" class="w-5 h-5 text-white"></i>
+                    </button>
+
+                    <!-- Message Input -->
+                    <div class="flex-1 glass-effect rounded-2xl border border-white/20 overflow-hidden">
+                        <textarea 
+                            class="w-full bg-transparent text-white placeholder-slate-400 p-4 resize-none border-none outline-none min-h-[50px] max-h-32"
+                            placeholder="Type your message... (Shift + Enter for new line)"
+                            rows="1"
+                            data-implementation="Auto-resize based on content"
+                            data-bind="inputValue"
+                        ></textarea>
+                        
+                        <!-- Input Footer -->
+                        <div class="flex items-center justify-between px-4 pb-2">
+                            <div class="flex gap-2">
+                                <!-- Voice Input -->
+                                <button class="text-slate-400 hover:text-white transition-colors" data-event="click:startVoiceInput">
+                                    <i data-lucide="mic" class="w-4 h-4"></i>
+                                </button>
+                                <!-- Emoji Picker -->
+                                <button class="text-slate-400 hover:text-white transition-colors" data-event="click:openEmojiPicker">
+                                    <i data-lucide="smile" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <span class="text-xs text-slate-500" data-bind="characterCount">0/2000</span>
+                        </div>
+                    </div>
+
+                    <!-- Send Button -->
+                    <button class="bg-gradient-to-r from-purple-500 to-pink-500 p-3 rounded-xl hover:scale-105 transition-all duration-200 flex-shrink-0 shadow-lg hover:shadow-purple-500/25" data-event="click:sendMessage">
+                        <i data-lucide="send" class="w-5 h-5 text-white"></i>
+                    </button>
+                </div>
+
+                <!-- Status Bar -->
+                <div class="flex items-center justify-between mt-2 text-xs text-slate-400">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span data-bind="connectionStatus">Connected • Funny mode</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span data-bind="messageCount">12 messages today</span>
+                        <button class="hover:text-white transition-colors" data-event="click:clearChat">
+                            Clear chat
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: ChatInput -->
+    </div>
+    <!-- @END_COMPONENT: MainChatInterface -->
+
+    <!-- Floating Action Buttons -->
+    <!-- @COMPONENT: FloatingActions -->
+    <div class="fixed right-4 bottom-24 flex flex-col gap-3 z-20">
+        <button class="glass-effect p-3 rounded-full hover:scale-110 transition-all duration-200 shadow-lg" data-event="click:scrollToTop">
+            <i data-lucide="arrow-up" class="w-5 h-5 text-white"></i>
+        </button>
+        <button class="glass-effect p-3 rounded-full hover:scale-110 transition-all duration-200 shadow-lg" data-event="click:toggleTheme">
+            <i data-lucide="palette" class="w-5 h-5 text-white"></i>
+        </button>
+    </div>
+    <!-- @END_COMPONENT: FloatingActions -->
+
+    <!-- Settings Modal (Hidden by default) -->
+    <!-- @COMPONENT: SettingsModal -->
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden" id="settings-modal" data-implementation="Toggle visibility based on settings state">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="glass-effect rounded-2xl p-6 max-w-md w-full border border-white/20">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-white">Settings</h2>
+                    <button class="text-slate-400 hover:text-white transition-colors" data-event="click:closeSettings">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <!-- Theme Selection -->
+                    <div>
+                        <label class="text-sm font-medium text-white mb-2 block">Theme</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button class="glass-effect p-3 rounded-lg text-sm hover:bg-white/20 transition-all">🌙 Dark</button>
+                            <button class="glass-effect p-3 rounded-lg text-sm hover:bg-white/20 transition-all opacity-60">☀️ Light</button>
+                            <button class="glass-effect p-3 rounded-lg text-sm hover:bg-white/20 transition-all opacity-60">🎮 Neon</button>
+                            <button class="glass-effect p-3 rounded-lg text-sm hover:bg-white/20 transition-all opacity-60">🌸 Anime</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Voice Settings -->
+                    <div>
+                        <label class="text-sm font-medium text-white mb-2 block">Voice Output</label>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-slate-300">Enable voice responses</span>
+                            <div class="w-12 h-6 bg-purple-500 rounded-full relative cursor-pointer">
+                                <div class="w-5 h-5 bg-white rounded-full absolute top-0.5 right-0.5 transition-all"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Personality Voice Matching -->
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-slate-300">Match voice to personality</span>
+                            <div class="w-12 h-6 bg-slate-600 rounded-full relative cursor-pointer">
+                                <div class="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-all"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="w-full mt-6 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-lg hover:scale-105 transition-all duration-200">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: SettingsModal -->
+
+    <script>
+    // Initialize particles and interactions
+    (() => {
+        // Create floating particles
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * window.innerWidth + 'px';
+            particle.style.animationDuration = (Math.random() * 15 + 10) + 's';
+            particle.style.opacity = Math.random() * 0.5 + 0.3;
+            
+            document.getElementById('particles-container').appendChild(particle);
+            
+            setTimeout(() => particle.remove(), 20000);
+        }
+        
+        // Create particles periodically
+        setInterval(createParticle, 2000);
+        
+        // Mouse tracking for gradient effect
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            
+            // Update background gradient based on mouse position
+            const percentX = (mouseX / window.innerWidth) * 100;
+            const percentY = (mouseY / window.innerHeight) * 100;
+            
+            document.body.style.background = `
+                radial-gradient(circle at ${percentX}% ${percentY}%, 
+                    rgba(139, 69, 19, 0.3) 0%, 
+                    rgba(30, 27, 75, 0.8) 40%, 
+                    rgba(15, 23, 42, 1) 100%
+                )
+            `;
+        });
+        
+        // Initialize Lucide icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        // Auto-resize textarea
+        const textarea = document.querySelector('textarea');
+        if (textarea) {
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 128) + 'px';
+            });
+        }
+        
+        // Personality switching
+        document.querySelectorAll('[data-personality]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remove active state from all buttons
+                document.querySelectorAll('[data-personality]').forEach(b => b.classList.add('opacity-60'));
+                // Add active state to clicked button
+                this.classList.remove('opacity-60');
+                
+                // TODO: Implement personality switching logic
+                console.log('Switching to personality:', this.dataset.personality);
+            });
+        });
+        
+        // Quick action buttons
+        document.querySelectorAll('[data-event]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const action = this.dataset.event.split(':')[1];
+                console.log('Action triggered:', action);
+                // TODO: Implement specific action handlers
+            });
+        });
+        
+        // Settings modal toggle
+        const settingsModal = document.getElementById('settings-modal');
+        document.querySelector('[data-event="click:openSettings"]')?.addEventListener('click', () => {
+            settingsModal?.classList.remove('hidden');
+        });
+        document.querySelector('[data-event="click:closeSettings"]')?.addEventListener('click', () => {
+            settingsModal?.classList.add('hidden');
+        });
+        
+        // Chat auto-scroll
+        const chatContainer = document.querySelector('.chat-container');
+        if (chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // Add some initial particles
+        for (let i = 0; i < 10; i++) {
+            setTimeout(createParticle, i * 500);
+        }
+    })();
+    </script>
+</body>
+</html>
