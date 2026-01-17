@@ -16,8 +16,16 @@ export function useChat({ sessionId, userId }: UseChatProps = {}) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch messages for session
-  const { data: sessionMessages, isLoading } = useQuery({
+  const { data: sessionMessages, isLoading } = useQuery<Message[]>({
     queryKey: ['/api/sessions', sessionId, 'messages'],
+    queryFn: async () => {
+      if (!sessionId) return [];
+      const response = await fetch(`/api/sessions/${sessionId}/messages`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages');
+      }
+      return response.json();
+    },
     enabled: !!sessionId,
   });
 
