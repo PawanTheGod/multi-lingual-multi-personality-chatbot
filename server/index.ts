@@ -1,5 +1,6 @@
-import app, { serverPromise } from "./app";
-import { setupVite, serveStatic, log } from "./vite";
+import app, { serverPromise } from "./app.js"; // Add extension here too!
+import { setupVite, serveStatic } from "./vite.js"; // Add extension
+import { log } from "./logger.js";
 
 // This file is the entry point for LOCAL development and production server (non-serverless)
 (async () => {
