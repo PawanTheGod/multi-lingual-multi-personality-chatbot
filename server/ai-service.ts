@@ -1,5 +1,5 @@
 import { Message, Personality } from "@shared/schema";
-import { AVAILABLE_MODELS, getModelsByCapability, isModelCompatible } from "./models";
+import { AVAILABLE_MODELS, getModelsByCapability, isModelCompatible } from "./models.js";
 import type { ModelConfig } from "@shared/schema";
 
 // Get the current active model from environment or default
@@ -7,7 +7,7 @@ let currentModel = process.env.DEFAULT_MODEL || 'deepseek-r1t-chimera';
 
 // Dynamic import - OpenRouter only
 const getAIService = async (modelId?: string) => {
-  return await import("./openrouter");
+  return await import("./openrouter.js");
 };
 
 // Set the current active model

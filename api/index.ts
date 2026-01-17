@@ -1,5 +1,5 @@
 import serverless from 'serverless-http';
-import app from '../server/app';
+import app from '../server/app.js';
 
 // Vercel Serverless Function Config
 export const config = {
