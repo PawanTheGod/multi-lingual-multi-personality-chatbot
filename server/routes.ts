@@ -66,7 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const existing = await storage.getUser(userId);
         if (!existing) {
           try {
-            await storage.createUser({ id: userId, username: userId }); // Should use username specific creator if needed, or stick to this if compatible
+            await storage.createUser({ username: userId }); // Should use username specific creator if needed, or stick to this if compatible
           } catch (e) {
             // Ignore unique conflicts
           }
