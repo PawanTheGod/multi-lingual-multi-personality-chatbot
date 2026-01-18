@@ -1,0 +1,16 @@
+# Config files for local development only
+.replit
+replit.md
+.continue/
+.local/
+.zencoder/
+.zenflow/
+aiderenv/
+
+# Development files
+vitest.config.ts
+WARP.md
+project-tree.txt
+
+# Python scripts (not needed for deployment)
+*.py
