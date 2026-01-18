@@ -1,20 +1,37 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import serverless from 'serverless-http';
 
-// Dynamic import to handle the ES module properly
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+// Cache the handler to avoid re-initialization on every request
+let cachedHandler: any = null;
+
+async function getHandler() {
+    if (cachedHandler) {
+        return cachedHandler;
+    }
+
     try {
-        // Import the app module which exports both serverPromise and the app
+        // Import the app module
         const appModule = await import('../server/app.js');
 
-        // Wait for the server promise to resolve (this registers routes)
+        // Wait for routes to be registered
         await appModule.serverPromise;
 
-        // Wrap the express app with serverless-http
-        const handler = serverless(appModule.default);
+        // Create and cache the serverless handler
+        cachedHandler = serverless(appModule.default, {
+            binary: ['image/*', 'application/octet-stream']
+        });
 
-        // Execute the wrapped handler
-        return await handler(req, res);
+        return cachedHandler;
+    } catch (error) {
+        console.error('Failed to initialize handler:', error);
+        throw error;
+    }
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+    try {
+        const handlerFn = await getHandler();
+        return await handlerFn(req, res);
     } catch (error) {
         console.error('Serverless handler error:', error);
         return res.status(500).json({
