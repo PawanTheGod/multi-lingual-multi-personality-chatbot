@@ -46,6 +46,10 @@ export async function generateChatResponse(
     ];
 
     try {
+        // Create abort controller for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
         const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
             method: "POST",
             headers: {
@@ -57,7 +61,10 @@ export async function generateChatResponse(
                 messages,
                 stream: true,
             }),
+            signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -73,34 +80,44 @@ export async function generateChatResponse(
         const decoder = new TextDecoder();
         let buffer = "";
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
 
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop() || "";
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                buffer = lines.pop() || "";
 
-            for (const line of lines) {
-                if (!line.trim() || !line.startsWith("data:")) continue;
+                for (const line of lines) {
+                    if (!line.trim() || !line.startsWith("data:")) continue;
 
-                const data = line.replace(/^data:\s*/, "");
-                if (data === "[DONE]") return;
+                    const data = line.replace(/^data:\s*/, "");
+                    if (data === "[DONE]") return;
 
-                try {
-                    const parsed = JSON.parse(data);
-                    const delta = parsed.choices?.[0]?.delta?.content;
-                    if (delta) {
-                        onChunk(delta);
+                    try {
+                        const parsed = JSON.parse(data);
+                        const delta = parsed.choices?.[0]?.delta?.content;
+                        if (delta) {
+                            onChunk(delta);
+                        }
+                    } catch (e) {
+                        // Ignore malformed JSON lines
                     }
-                } catch (e) {
-                    // Ignore malformed JSON lines
                 }
             }
+        } finally {
+            // Always cleanup the reader
+            reader.releaseLock();
         }
     } catch (error) {
-        console.error("OpenRouter error:", error);
-        onChunk(`Error: ${error instanceof Error ? error.message : "Unknown error occurred"}`);
+        if (error instanceof Error && error.name === 'AbortError') {
+            console.error("OpenRouter request timeout");
+            onChunk("Error: Request timed out. Please try again.");
+        } else {
+            console.error("OpenRouter error:", error);
+            onChunk(`Error: ${error instanceof Error ? error.message : "Unknown error occurred"}`);
+        }
     }
 }
 

@@ -22,7 +22,8 @@ export function useChat({ sessionId, userId }: UseChatProps = {}) {
       if (!sessionId) return [];
       const response = await fetch(`/api/sessions/${sessionId}/messages`);
       if (!response.ok) {
-        throw new Error('Failed to fetch messages');
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch messages (${response.status}): ${errorText}`);
       }
       return response.json();
     },
@@ -75,6 +76,12 @@ export function useChat({ sessionId, userId }: UseChatProps = {}) {
         body: JSON.stringify({ message, personality, sessionId: msgSessionId, userId, modelId }),
         signal: abortControllerRef.current.signal,
       });
+
+      // Check response status before processing
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server error (${response.status}): ${errorText}`);
+      }
 
       if (!response.body) throw new Error('No response body');
 
