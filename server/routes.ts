@@ -112,7 +112,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const existingSession = await storage.getChatSession(sessionId);
         if (!existingSession) {
           await storage.createChatSession({
-            id: sessionId,
             userId: userId,
             title: `Chat with ${personality}`,
             personality: personality
