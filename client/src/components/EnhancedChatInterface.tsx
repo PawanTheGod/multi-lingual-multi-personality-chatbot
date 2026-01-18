@@ -52,14 +52,29 @@ export default function EnhancedChatInterface({
   // Fetch available models on mount
   useEffect(() => {
     fetch('/api/models')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`Failed to fetch models: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         setModels(data);
         if (data['deepseek-r1t-chimera']?.id) {
           setSelectedModel(data['deepseek-r1t-chimera'].id);
         }
       })
-      .catch(err => console.error("Failed to load models:", err));
+      .catch(err => {
+        console.error("Failed to load models:", err);
+        // Fallback to default model info if API fails
+        setModels({
+          'deepseek-r1t-chimera': {
+            id: 'tngtech/deepseek-r1t-chimera:free',
+            name: 'DeepSeek Chimera (Roleplay)'
+          }
+        });
+        setSelectedModel('tngtech/deepseek-r1t-chimera:free');
+      });
   }, []);
 
   const { messages, isStreaming, sendMessage, isPending } = useChat({
